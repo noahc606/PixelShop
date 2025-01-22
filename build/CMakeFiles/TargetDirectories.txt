@@ -1,3 +1,0 @@
-/home/nch/Technical/Git/PixelShop/build/CMakeFiles/PixelShop-unix.dir
-/home/nch/Technical/Git/PixelShop/build/CMakeFiles/edit_cache.dir
-/home/nch/Technical/Git/PixelShop/build/CMakeFiles/rebuild_cache.dir
