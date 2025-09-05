@@ -1,0 +1,20 @@
+body {
+    background-color: rgba(255, 255, 255, 1);
+}
+
+div.main {
+    height: 100%;
+    width: 100%;
+    decorator: horizontal-gradient(rgb(255, 235, 205) rgb(163, 163, 163));
+    border-width: 2px;
+    border-color: black;
+
+    text-align: center;
+}
+div.rgb {
+    text-align: left;
+}
+
+textarea {
+    background-color: white;
+}

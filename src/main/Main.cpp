@@ -1,59 +1,46 @@
 #include "Main.h"
-#include <iostream>
-#include <tinyfiledialogs/tinyfiledialogs.h>
-#include <nch/cpp-utils/fs/FilePath.h>
-#include <nch/sdl-utils/MainLoopDriver.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+#include <SDL2/SDL_render.h>
+#include <SDL2/SDL_video.h>
+#include <nch/cpp-utils/filepath.h>
+#include <nch/sdl-utils/input.h>
+#include <nch/sdl-utils/main-loop-driver.h>
+#include "GUIs.h"
+#include "Init.h"
+
+using namespace nch;
 
 SDL_Window* Main::window = nullptr;
 SDL_Renderer* Main::renderer = nullptr;
-Paint Main::paint;
+std::string Main::basePath = "";
+Paint* Main::paint = nullptr;
+bool Main::tickedYet = false;
 
-int main() { Main m; return m.main(); }
-
-void initSDL(SDL_Window*& sdlWindow, SDL_Renderer*& sdlRenderer)
-{
-    int sdlFlags = SDL_INIT_VIDEO;
-    if( SDL_Init(sdlFlags)!=0 ) {
-        printf("SDL_Init error: %s\n", SDL_GetError());
-    }
-
-    int winFlags = SDL_WINDOW_RESIZABLE;
-    sdlWindow = SDL_CreateWindow("PixelShop", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, winFlags);
-    if(sdlWindow==NULL) {
-        printf("SDL_CreateWindow error: %s\n", SDL_GetError());
-    }
-    
-    int rendFlags = SDL_RENDERER_TARGETTEXTURE;
-    sdlRenderer = SDL_CreateRenderer(sdlWindow, -1, rendFlags);
-    
-}
-
-void fileDialog()
-{
-    char const* lFilterPatterns[] = { "*.png", "*.gif", "*.jpg" };
-
-    // there is also a wchar_t version
-    char const* selection = tinyfd_openFileDialog(
-        "Select file", // title
-        "", // optional initial directory
-        2, // number of filter patterns
-        lFilterPatterns, // char const * lFilterPatterns[2] = { "*.txt", "*.jpg" };
-        NULL, // optional filter description
-        0 // forbids multiple selections
-    );
-    printf("Selected the file \"%s\".\n", selection);
-}
-
-int Main::main()
+int main() { Main m; return 0; }
+Main::Main()
 {
     printf("Starting...\n");
-    initSDL(window, renderer);
-    SDL_ShowWindow(window);
+    Init::libSDL(basePath, window, renderer);
+    Init::libRmlUi(renderer, basePath);
+    GUIs::globalInit(renderer);
 
-    paint.init(renderer);    
-    nch::MainLoopDriver mainLoop(renderer, &tick, 50, &draw, 200);
+    std::string openedPath = "";
+    #ifndef EMSCRIPTEN
+        openedPath = GUIs::showFileDialogNative();
+    #endif
 
-    return 0;
+    paint = new Paint(renderer, openedPath);
+    MainLoopDriver mld(renderer, &tick, 50, &draw, 200, events);
+}
+Main::~Main()
+{
+    GUIs::globalFree();
+
+    SDL_Webview::rmlGlobalShutdown();
+
+    SDL_Quit();
+    IMG_Quit();
 }
 
 uint32_t Main::getWindowPixelFormat()
@@ -61,23 +48,44 @@ uint32_t Main::getWindowPixelFormat()
     return SDL_GetWindowPixelFormat(window);
 }
 
+int Main::getWidth() {
+    int ret; SDL_GetWindowSize(window, &ret, NULL); return ret;
+}
+int Main::getHeight() {
+    int ret; SDL_GetWindowSize(window, NULL, &ret); return ret;
+}
+
 void Main::tick()
 {
-    paint.tick();
+    if(paint!=nullptr) {
+        paint->tick();
+        tickedYet = true;
+    }
+
+    if(Input::keyDownTime(SDLK_F5)==1) {
+        GUIs::globalReload();
+    }
+    GUIs::tick();
 }
 
 void Main::draw(SDL_Renderer* rend)
-{
-	//Set render target to default and blendmode to blend
-	SDL_SetRenderTarget(rend, NULL);
-	SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
-	
+{	
 	//Black background
 	SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
 	SDL_RenderFillRect(rend, NULL);
 
-    paint.draw(rend);
+    if(paint!=nullptr) {
+        if(tickedYet)
+            paint->draw(rend);
+    }
+
+    GUIs::draw();
 
 	//Render present objects on screen
 	SDL_RenderPresent(rend);
+}
+
+void Main::events(SDL_Event& evt)
+{
+
 }

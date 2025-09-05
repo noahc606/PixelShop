@@ -1,0 +1,42 @@
+body {
+    display: block;
+    background-color: rgba(255, 255, 255, 1); /* Alpha needs to be 1, not 0 */
+}
+
+p {
+    color: black;
+}
+
+div.toolbar {
+    position: relative;
+    decorator: horizontal-gradient(rgb(255, 235, 205) rgb(163, 163, 163));
+    width: 128px;
+    height: 100%;
+}
+
+div.toolbar-palette-holder {
+    width: 100%;
+    text-align: center;
+}
+div.toolbar-palette {
+    display: flex;
+    justify-content: center;
+}
+
+div.color-square
+{
+    width: 16px;
+    height: 16px;
+    margin-left: 1px; margin-right: 1px;
+    margin-top: 5px; margin-bottom: 5px;
+
+    border-width: 1px;
+    border-color: rgb(0, 0, 0);
+}
+div.color-square.selected {
+    border-color: rgb(255, 255, 255);
+    border-width: 2px;
+}
+div.color-square:hover {
+    border-color: rgb(255, 255, 0);
+}
