@@ -1,13 +1,13 @@
 #pragma once
-#include <SDL2/SDL_events.h>
-#include <cstdint>
 #include <SDL2/SDL.h>
+#include <cstdint>
 #include "Paint.h"
 
 class Main {
 public:
     Main(); ~Main();
 
+    static SDL_Renderer* getRenderer();
     static uint32_t getWindowPixelFormat();
     static int getWidth();
     static int getHeight();

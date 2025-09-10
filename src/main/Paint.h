@@ -5,6 +5,7 @@
 #include <nch/rmlui-utils/web-events.h>
 #include <nch/sdl-utils/rect.h>
 #include <SDL2/SDL.h>
+#include "Canvas.h"
 
 
 class Paint {
@@ -16,7 +17,6 @@ public:
     void reload();
 
 private:
-    void drawPixel(SDL_Renderer* rend, nch::Vec2i pos);
     void setColorSquare(int id, nch::Color col);
     nch::Color selectColorSquare(std::string id);
     nch::Color selectColorSquare(int idNo);
@@ -24,14 +24,9 @@ private:
     nch::SDL_Webview webview;
     nch::WebEventHolder webEvents;
 
-    nch::Rect workspace = nch::Rect(0, 0, 1, 1);
-    nch::Vec2i cursorPos = {0,0};
-    nch::Vec2i lastCursorPos = {-1,-1};
+    nch::Vec2i cursorPos = {0,0}, lastCursorPos = {-1,-1};
 
-    SDL_Texture* canvas = nullptr;
-    nch::Vec2i cvsPos = {0, 0};
-    nch::Vec2i cvsDims = {1, 1};
-    double cvsZoom = 5.0;
+    Canvas* canv = nullptr;
 
     int holdingSave = 0;
 

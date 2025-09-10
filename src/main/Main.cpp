@@ -43,6 +43,9 @@ Main::~Main()
     IMG_Quit();
 }
 
+SDL_Renderer* Main::getRenderer() {
+    return renderer;
+}
 uint32_t Main::getWindowPixelFormat()
 {
     return SDL_GetWindowPixelFormat(window);

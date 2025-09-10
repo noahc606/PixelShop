@@ -1,9 +1,5 @@
 #include "Paint.h"
 #include <SDL2/SDL_image.h>
-#include <SDL2/SDL_keycode.h>
-#include <SDL2/SDL_render.h>
-#include <SDL2/SDL_surface.h>
-#include <exception>
 #include <nch/cpp-utils/fs-utils.h>
 #include <nch/cpp-utils/log.h>
 #include <nch/cpp-utils/timer.h>
@@ -11,6 +7,7 @@
 #include <nch/sdl-utils/input.h>
 #include <nch/sdl-utils/texture-utils.h>
 #include <sstream>
+#include "Canvas.h"
 #include "GUIs.h"
 #include "Main.h"
 #include "Types.h"
@@ -23,39 +20,10 @@ Paint::Paint(SDL_Renderer* rend, std::string path)
     reload();
 
     //Load image onto canvas
-    try {
-        if(path=="") throw std::exception();
-        if(!FsUtils::fileExists(path)) throw std::exception();
-        
-        //Create surface 'surfImg' from loading the image @ the provided 'path'.
-        SDL_Surface* surfImg = IMG_Load(path.c_str());
-        if(surfImg==nullptr) throw std::exception();
-
-        //Create empty 'canvas' with same size as 'surfImg'
-        canvas = SDL_CreateTexture(rend, Main::getWindowPixelFormat(), SDL_TEXTUREACCESS_TARGET, surfImg->w, surfImg->h);
-        if(canvas==nullptr) throw std::exception();
-        TexUtils::clearTexture(rend, canvas);
-
-        //Create texture 'texImg' from 'surfImg'
-        SDL_Texture* texImg = SDL_CreateTextureFromSurface(rend, surfImg);
-        SDL_FreeSurface(surfImg);
-        if(texImg==nullptr) throw std::exception();
-        //Copy loaded 'texImg' to canvas
-        SDL_SetRenderTarget(rend, canvas);
-        SDL_RenderCopy(rend, texImg, NULL, NULL);
-        SDL_SetRenderTarget(rend, NULL);
-    
-    } catch(...) {
-        canvas = SDL_CreateTexture(rend, Main::getWindowPixelFormat(), SDL_TEXTUREACCESS_TARGET, 100, 100);
-        if(canvas==nullptr) throw std::exception();
-    }
-
-    //Set canvas parameters
-    cvsPos = {10, 10};
-    SDL_QueryTexture(canvas, NULL, NULL, &cvsDims.x, &cvsDims.y);
+    canv = new Canvas(rend, path);
 }
 Paint::~Paint() {
-    SDL_DestroyTexture(canvas);
+    delete canv;
 }
 
 void Paint::tick()
@@ -65,7 +33,7 @@ void Paint::tick()
     FRect toolbarRect = RmlUtils::getElementBox(doc->GetElementById("toolbar"));
     int tbx2 = toolbarRect.x2();
     if(toolbarRect.r.w==-1) tbx2 = 0;
-    workspace = Rect(tbx2, 0, Main::getWidth()-tbx2, Main::getHeight());
+    canv->updateWorkspace(Rect(tbx2, 0, Main::getWidth()-tbx2, Main::getHeight()));
 
     //Tick webview/process reloads and events
     webview.tick();
@@ -89,29 +57,20 @@ void Paint::tick()
         }
     }
 
-
-
-    //Key inputs
-    if(Input::isModKeyDown(KMOD_CTRL) && nch::Input::keyDownTime(SDLK_s)==1) {
-        printf("Saving...\n");
-    }
+    canv->tick();
 }
 
 void Paint::draw(SDL_Renderer* rend)
 {
-    //Set mouse location
-    int mx = (Input::getMouseX()-cvsPos.x-workspace.x1())/cvsZoom;
-    int my = (Input::getMouseY()-cvsPos.y-workspace.y1())/cvsZoom;
+    //Set cursor location
     lastCursorPos = cursorPos;
-    cursorPos = {mx, my};
-    
+    cursorPos = canv->getCursorPos();
+    Rect workspace = canv->getWorkspace();
+
     //Draw when holding mouse down
     if(nch::Input::isMouseDown(1) || nch::Input::isMouseDown(3)) {
-        SDL_SetRenderTarget(rend, canvas);
-        drawPixel(rend, cursorPos);
-        SDL_SetRenderDrawColor(rend, brushColor.r, brushColor.g, brushColor.b, 255);
-        SDL_RenderDrawLine(rend, lastCursorPos.x, lastCursorPos.y, cursorPos.x, cursorPos.y);  
-        SDL_SetRenderTarget(rend, NULL);
+        canv->drawPixel(cursorPos, brushColor);
+        canv->drawLine(lastCursorPos, cursorPos, brushColor);
     }
 
     /* Draw workspace */
@@ -128,13 +87,11 @@ void Paint::draw(SDL_Renderer* rend)
         }}
         
         //Draw canvas
-        SDL_SetTextureBlendMode(canvas, SDL_BLENDMODE_BLEND);
-        Rect canvasDst(workspace.x1()+cvsPos.x, workspace.y1()+cvsPos.y, cvsDims.x*cvsZoom, cvsDims.y*cvsZoom);
-        SDL_RenderCopy(rend, canvas, NULL, &canvasDst.r);
+        canv->drawCopy();
 
         //Draw cursor pixel
         SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
-        FRect cursorDst(workspace.x1()+cvsPos.x+cursorPos.x*cvsZoom, workspace.y1()+cvsPos.y+cursorPos.y*cvsZoom, cvsZoom, cvsZoom);
+        FRect cursorDst = canv->getCursorSquare();
         SDL_RenderDrawRectF(rend, &cursorDst.r);
     }
 
@@ -162,12 +119,7 @@ void Paint::reload()
     setColorSquare(2, Color(0, 0, 255));
     setColorSquare(3, Color(255, 255, 255));
     setColorSquare(4, Color(0, 0, 0));
-}
-
-void Paint::drawPixel(SDL_Renderer* rend, nch::Vec2i pos)
-{
-    SDL_SetRenderDrawColor(rend, brushColor.r, brushColor.g, brushColor.b, 255);
-    SDL_RenderDrawPoint(rend, pos.x, pos.y);
+    brushColor = selectColorSquare(0);
 }
 
 void Paint::setColorSquare(int idNo, nch::Color col)
