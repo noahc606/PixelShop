@@ -122,6 +122,10 @@ Vec2i Canvas::getDims() {
 double Canvas::getScale() {
     return scale;
 }
+Color Canvas::getPixel(const nch::Vec2i& pos)
+{
+    return TexUtils::getPixelColor(surf, pos.x, pos.y);
+}
 
 void Canvas::saveAs(std::string savedFileName)
 {

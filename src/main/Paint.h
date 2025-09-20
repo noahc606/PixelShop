@@ -24,10 +24,13 @@ public:
     void reload();
 
 private:
+    void drawingLeftMouseDown();
+
     void selectTool(int toolType);
-    void setColorSquare(int id, nch::Color col);
+    void setColorSquare(int idNo, nch::Color col);
     nch::Color selectColorSquare(std::string id);
     nch::Color selectColorSquare(int idNo);
+    void selectColorPicker(bool selected);
 
     nch::SDL_Webview webview;
     nch::WebEventHolder webEvents;
@@ -39,4 +42,7 @@ private:
 
     nch::Color toolColor;
     int toolType = PENCIL;
+    int lastColorSquareIdSelected = -1;
+    bool colorPickerSelected = false;
+    bool colorPickerReleased = true;
 };

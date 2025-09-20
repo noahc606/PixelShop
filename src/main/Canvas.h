@@ -17,7 +17,8 @@ public:
     nch::FRect getDst();
     nch::Rect getWorkspace();
     nch::Vec2i getPos(); nch::Vec2i getDims(); double getScale();
-    
+    nch::Color getPixel(const nch::Vec2i& pos);
+
     void saveAs(std::string savedFileName);
     void save();
     void updateWorkspace(nch::Rect wsRect);

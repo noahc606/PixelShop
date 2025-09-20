@@ -3,11 +3,14 @@
 #include <cmath>
 #include <nch/cpp-utils/fs-utils.h>
 #include <nch/cpp-utils/log.h>
+#include <nch/cpp-utils/string-utils.h>
 #include <nch/cpp-utils/timer.h>
 #include <nch/rmlui-utils/rml-utils.h>
 #include <nch/sdl-utils/input.h>
 #include <nch/sdl-utils/texture-utils.h>
 #include <sstream>
+#include <stdexcept>
+#include <vector>
 #include "Canvas.h"
 #include "GUIs.h"
 #include "Main.h"
@@ -31,9 +34,9 @@ void Paint::tick()
 {
     //Update workspace location
     auto doc = webview.getWorkingDocument();
-    FRect toolbarRect = RmlUtils::getElementBox(doc->GetElementById("toolbar"));
-    int tbx2 = toolbarRect.x2();
-    if(toolbarRect.r.w==-1) tbx2 = 0;
+    FRect sidebarRect = RmlUtils::getElementBox(doc->GetElementById("sidebar"));
+    int tbx2 = sidebarRect.x2();
+    if(sidebarRect.r.w==-1) tbx2 = 0;
     canv->updateWorkspace(Rect(tbx2, 0, Main::getWidth()-tbx2, Main::getHeight()));
 
     //Tick webview/process reloads and events
@@ -74,10 +77,24 @@ void Paint::tick()
         Rml::ElementList eToolSquares;
         doc->GetElementsByClassName(eToolSquares, "tool-square");
         for(int i = 0; i<eToolSquares.size(); i++) {
-            FRect csRect = RmlUtils::getElementBox(eToolSquares[i]);
-            if(csRect.contains(Input::getMouseX(), Input::getMouseY())) {
+            if(!eToolSquares[i]->IsClassSet("toolbar-primary")) continue;
+
+            FRect fr = RmlUtils::getElementBox(eToolSquares[i]);
+            if(fr.contains(Input::getMouseX(), Input::getMouseY())) {
                 if(Input::mouseDownTime(1)==1) {
                     selectTool(i);
+                    selectColorPicker(false);
+                }
+            }
+        }
+
+        Rml::Element* eToolColorPicker = doc->GetElementById("tool-color-picker");
+        if(eToolColorPicker!=nullptr) {
+            FRect fr = RmlUtils::getElementBox(eToolColorPicker);
+            if(fr.contains(Input::getMouseX(), Input::getMouseY())) {
+                if(Input::mouseDownTime(1)==1) {
+                    selectTool(-1);
+                    selectColorPicker(true);
                 }
             }
         }
@@ -93,16 +110,14 @@ void Paint::draw(SDL_Renderer* rend)
     cursorPos = canv->getCursorPos();
     Rect workspace = canv->getWorkspace();
 
-    //Draw when holding mouse down
-    if(Input::isMouseDown(1)) {
-        switch (toolType) {
-            case PENCIL: { canv->drawLine(lastCursorPos, cursorPos, toolColor); } break;
-            case ERASER: { canv->drawLine(lastCursorPos, cursorPos, Color(255, 255, 255, 0)); } break;
-            case FILL_BUCKET: { canv->floodPixels(cursorPos, toolColor); } break;
-        }
+    if(!colorPickerReleased && !Input::isMouseDown(1)) {
+        colorPickerReleased = true;
     }
 
-
+    //Draw when holding mouse down
+    if(Input::isMouseDown(1)) {
+        drawingLeftMouseDown();
+    }
 
     /* Draw workspace */
     {
@@ -140,7 +155,7 @@ void Paint::draw(SDL_Renderer* rend)
         SDL_RenderDrawRectF(rend, &cursorDst.r);
     }
 
-    //Draw toolbar
+    //Draw sidebar
     webview.resize({Main::getWidth(), Main::getHeight()});
     webview.render();
     webview.drawCopy({0, 0});
@@ -156,15 +171,50 @@ void Paint::reload()
     for(int i = 0; i<eColorSquares.size(); i++) {
         std::stringstream id; id << "color-square-"  << i;
         eColorSquares[i]->SetId(id.str());
+        setColorSquare(i, Color(0, 0, 0));
     }
 
-    //Set selected colors
-    setColorSquare(0, Color(255, 0, 0));
-    setColorSquare(1, Color(0, 255, 0));
-    setColorSquare(2, Color(0, 0, 255));
-    setColorSquare(3, Color(255, 255, 255));
-    setColorSquare(4, Color(0, 0, 0));
+    std::vector<Color> colors = {
+        Color(0, 0, 0),
+        Color(255, 255, 255),
+        Color(255, 0, 0),
+        Color(0, 255, 0),
+        Color(0, 0, 255),
+        Color(255, 255, 0),
+        Color(255, 0, 255),
+        Color(0, 255, 255),
+        Color(255, 127, 0),
+        Color(127, 0, 127),
+        Color(0, 0, 127),
+        Color(0, 127, 0)
+    };
+    for(int i = 0; i<colors.size(); i++) {
+        setColorSquare(i, colors[i]);
+    }
     toolColor = selectColorSquare(0);
+}
+
+void Paint::drawingLeftMouseDown()
+{
+    if(!colorPickerSelected && colorPickerReleased) {
+        switch (toolType) {
+            case PENCIL: { canv->drawLine(lastCursorPos, cursorPos, toolColor); } break;
+            case ERASER: { canv->drawLine(lastCursorPos, cursorPos, Color(255, 255, 255, 0)); } break;
+            case FILL_BUCKET: { canv->floodPixels(cursorPos, toolColor); } break;
+        }
+    } else {
+        if(colorPickerReleased) {
+            try {
+                auto pxCol = canv->getPixel(cursorPos);
+                
+                selectColorPicker(false);
+                selectTool(toolType);
+                setColorSquare(lastColorSquareIdSelected, pxCol);
+                toolColor = selectColorSquare(lastColorSquareIdSelected);
+            } catch(...) {}
+        }
+        colorPickerReleased = false;
+    }
 }
 
 void Paint::setColorSquare(int idNo, nch::Color col)
@@ -172,6 +222,7 @@ void Paint::setColorSquare(int idNo, nch::Color col)
     std::stringstream idStr; idStr << "color-square-" << idNo;
     auto doc = webview.getWorkingDocument();
     auto elem = doc->GetElementById(idStr.str());
+    if(elem==nullptr) return;
 
     std::stringstream style;
     style << "background-color: " << col.toStringB16(true) << ";";
@@ -181,35 +232,62 @@ void Paint::setColorSquare(int idNo, nch::Color col)
 void Paint::selectTool(int toolType)
 {
     auto doc = webview.getWorkingDocument();
-    Rml::ElementList eColorSquares;
-    doc->GetElementsByClassName(eColorSquares, "tool-square");
-    for(int i = 0; i<eColorSquares.size(); i++) {
+    Rml::ElementList eToolbarItems;
+    doc->GetElementsByClassName(eToolbarItems, "toolbar-primary");
+    for(int i = 0; i<eToolbarItems.size(); i++) {
         if(i==toolType) {
             Paint::toolType = toolType;
-            eColorSquares[i]->SetClassNames("tool-square selected");
+            eToolbarItems[i]->SetClassNames("toolbar-primary tool-square selected");
         } else {
-            eColorSquares[i]->SetClassNames("tool-square");
+            eToolbarItems[i]->SetClassNames("toolbar-primary tool-square");
         }
+    }
+
+
+}
+
+void Paint::selectColorPicker(bool selected)
+{
+    colorPickerSelected = selected;
+    auto doc = webview.getWorkingDocument();
+    Rml::Element* eToolColorPicker = doc->GetElementById("tool-color-picker");
+    if(eToolColorPicker!=nullptr) {
+        if(selected) { eToolColorPicker->SetClassNames("toolbar-secondary tool-square selected"); }
+        else         { eToolColorPicker->SetClassNames("toolbar-secondary tool-square"); }
     }
 }
 
 Color Paint::selectColorSquare(std::string id)
 {
+    bool fail = true;
+    if(StringUtils::aHasPrefixB(id, "color-square-")) {
+        int idNo = -1;
+        try { idNo = std::stoi(id.substr(std::string("color-square-").size())); } catch(...) {}
+        if(idNo!=-1) {
+            fail = false;
+            lastColorSquareIdSelected = idNo;
+        }
+    }
+    if(fail) {
+        Log::error(__PRETTY_FUNCTION__, "Invalid ID \"%s\"", id.c_str());
+        throw std::out_of_range("");
+    }
+
     Color ret;
 
     auto doc = webview.getWorkingDocument();
-    Rml::ElementList eColorSquares;
-    doc->GetElementsByClassName(eColorSquares, "color-square");
-    for(int i = 0; i<eColorSquares.size(); i++) {
-        if(eColorSquares[i]->GetId()==id) {
-            std::string styleVal = RmlUtils::getElementAttributeValue(eColorSquares[i], "style");
+    Rml::ElementList eToolbarItems;
+    doc->GetElementsByClassName(eToolbarItems, "toolbar-palette");
+    for(int i = 0; i<eToolbarItems.size(); i++) { try {
+        if(eToolbarItems[i]->GetId()==id) {
+            std::string styleVal = RmlUtils::getElementAttributeValue(eToolbarItems[i], "style");
             styleVal = styleVal.substr(styleVal.find("#"), 9);
             ret.setFromB16Str(styleVal);
-            eColorSquares[i]->SetClassNames("color-square selected");
+            eToolbarItems[i]->SetClassNames("toolbar-palette color-square selected");
         } else {
-            eColorSquares[i]->SetClassNames("color-square");
+            eToolbarItems[i]->SetClassNames("toolbar-palette color-square");
         }
-    }
+    } catch(...) {}}
 
     return ret;
 }

@@ -7,19 +7,20 @@ p {
     color: black;
 }
 
-div.toolbar {
+div.sidebar {
     position: relative;
     decorator: horizontal-gradient(rgb(255, 235, 205) rgb(163, 163, 163));
     width: 128px;
     height: 100%;
 }
 
-div.toolbar-section {
+div.sidebar-section {
     width: 100%;
     text-align: center;
 }
-div.toolbar-palette {
+div.toolbar {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
 }
 
@@ -52,8 +53,7 @@ div.color-square
 {
     width: 16px;
     height: 16px;
-    margin-left: 1px; margin-right: 1px;
-    margin-top: 5px; margin-bottom: 5px;
+    margin: 1px;
 
     border-width: 1px;
     border-color: rgb(0, 0, 0);

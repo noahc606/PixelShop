@@ -3,6 +3,8 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_pixels.h>
 #include <SDL2/SDL_render.h>
+#include <SDL2/SDL_surface.h>
+#include <SDL2/SDL_video.h>
 #include <nch/rmlui-utils/sdl-webview.h>
 using namespace nch;
 
@@ -22,6 +24,10 @@ void Init::libSDL(std::string& basePath, SDL_Window*& sdlWindow, SDL_Renderer*& 
     if(sdlWindow==NULL) {
         printf("SDL_CreateWindow error: %s\n", SDL_GetError());
     }
+
+    SDL_Surface* surfWinIco = IMG_Load((basePath+"/icon.png").c_str());
+    SDL_SetWindowIcon(sdlWindow, surfWinIco);
+    SDL_FreeSurface(surfWinIco);
 
     int rendFlags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE;
     sdlRenderer = SDL_CreateRenderer(sdlWindow, -1, rendFlags);
