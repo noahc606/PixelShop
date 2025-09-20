@@ -1,5 +1,6 @@
 #include "Paint.h"
 #include <SDL2/SDL_image.h>
+#include <cmath>
 #include <nch/cpp-utils/fs-utils.h>
 #include <nch/cpp-utils/log.h>
 #include <nch/cpp-utils/timer.h>
@@ -13,14 +14,14 @@
 #include "Types.h"
 using namespace nch;
 
-Paint::Paint(SDL_Renderer* rend, std::string path)
+Paint::Paint(SDL_Renderer* rend, std::string openedImgPath)
 {
     webview.initContext("paint");
     webview.rmlLoadDocumentAsset("paint.html");
     reload();
 
     //Load image onto canvas
-    canv = new Canvas(rend, path);
+    canv = new Canvas(rend, openedImgPath);
 }
 Paint::~Paint() {
     delete canv;
@@ -37,21 +38,46 @@ void Paint::tick()
 
     //Tick webview/process reloads and events
     webview.tick();
+
     if(Input::keyDownTime(SDLK_F5)==1) {
         reload();
     }
-    //Color square clicking
+    bool justSaved = false;
+    if(Input::isModKeyDown(KMOD_CTRL) && nch::Input::keyDownTime(SDLK_s)==1) {
+        Timer tim("saving image file to PNG", true);
+        canv->save();
+        justSaved = true;
+    }
+    if(!justSaved) {
+        if(Input::keyDownTime(SDLK_s)==1) { selectTool(SELECTION); }
+        if(Input::keyDownTime(SDLK_e)==1) { selectTool(ERASER); }
+        if(Input::keyDownTime(SDLK_p)==1) { selectTool(PENCIL); }
+        if(Input::keyDownTime(SDLK_f)==1) { selectTool(FILL_BUCKET); }
+    }
+
     {
+        //Change color or open color picker
         Rml::ElementList eColorSquares;
         doc->GetElementsByClassName(eColorSquares, "color-square");
         for(int i = 0; i<eColorSquares.size(); i++) {
             FRect csRect = RmlUtils::getElementBox(eColorSquares[i]);
             if(csRect.contains(Input::getMouseX(), Input::getMouseY())) {
                 if(Input::mouseDownTime(1)==1) {
-                    brushColor = selectColorSquare(eColorSquares[i]->GetId());
+                    toolColor = selectColorSquare(eColorSquares[i]->GetId());
                 }
                 if(Input::mouseDownTime(3)==1) {
-                    GUIs::addColorPickerDialog(brushColor);
+                    GUIs::addColorPickerDialog(toolColor);
+                }
+            }
+        }
+        //Change tool
+        Rml::ElementList eToolSquares;
+        doc->GetElementsByClassName(eToolSquares, "tool-square");
+        for(int i = 0; i<eToolSquares.size(); i++) {
+            FRect csRect = RmlUtils::getElementBox(eToolSquares[i]);
+            if(csRect.contains(Input::getMouseX(), Input::getMouseY())) {
+                if(Input::mouseDownTime(1)==1) {
+                    selectTool(i);
                 }
             }
         }
@@ -68,10 +94,15 @@ void Paint::draw(SDL_Renderer* rend)
     Rect workspace = canv->getWorkspace();
 
     //Draw when holding mouse down
-    if(nch::Input::isMouseDown(1) || nch::Input::isMouseDown(3)) {
-        canv->drawPixel(cursorPos, brushColor);
-        canv->drawLine(lastCursorPos, cursorPos, brushColor);
+    if(Input::isMouseDown(1)) {
+        switch (toolType) {
+            case PENCIL: { canv->drawLine(lastCursorPos, cursorPos, toolColor); } break;
+            case ERASER: { canv->drawLine(lastCursorPos, cursorPos, Color(255, 255, 255, 0)); } break;
+            case FILL_BUCKET: { canv->floodPixels(cursorPos, toolColor); } break;
+        }
     }
+
+
 
     /* Draw workspace */
     {
@@ -85,12 +116,26 @@ void Paint::draw(SDL_Renderer* rend)
             Rect dst(workspace.x1()+ix*bgSquareSize, workspace.y1()+iy*bgSquareSize, bgSquareSize, bgSquareSize);
             SDL_RenderFillRect(rend, &dst.r);
         }}
-        
+
+        //Outline color (oscillates between light gray and white)
+        int oc; {
+            uint64_t ms = Timer::getTicks();
+            double angle = 3.14159265358979323846*(ms/500.0);
+            oc = static_cast<int>(std::lround(191.0+64.0*std::sin(angle)));
+            if(oc<127) oc = 127;
+            if(oc>255) oc = 255;
+        }
+
+        //Draw canvas outline
+        SDL_SetRenderDrawColor(rend, oc, oc, oc, 255);
+        auto rCanvOutline = canv->getDst();
+        rCanvOutline.r.x--;     rCanvOutline.r.y--;
+        rCanvOutline.r.w+=2;    rCanvOutline.r.h+=2;
+        SDL_RenderDrawRectF(rend, &rCanvOutline.r);
         //Draw canvas
         canv->drawCopy();
-
         //Draw cursor pixel
-        SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
+        SDL_SetRenderDrawColor(rend, oc, oc, oc, 255);
         FRect cursorDst = canv->getCursorSquare();
         SDL_RenderDrawRectF(rend, &cursorDst.r);
     }
@@ -119,7 +164,7 @@ void Paint::reload()
     setColorSquare(2, Color(0, 0, 255));
     setColorSquare(3, Color(255, 255, 255));
     setColorSquare(4, Color(0, 0, 0));
-    brushColor = selectColorSquare(0);
+    toolColor = selectColorSquare(0);
 }
 
 void Paint::setColorSquare(int idNo, nch::Color col)
@@ -131,6 +176,21 @@ void Paint::setColorSquare(int idNo, nch::Color col)
     std::stringstream style;
     style << "background-color: " << col.toStringB16(true) << ";";
     elem->SetAttribute("style", style.str());
+}
+
+void Paint::selectTool(int toolType)
+{
+    auto doc = webview.getWorkingDocument();
+    Rml::ElementList eColorSquares;
+    doc->GetElementsByClassName(eColorSquares, "tool-square");
+    for(int i = 0; i<eColorSquares.size(); i++) {
+        if(i==toolType) {
+            Paint::toolType = toolType;
+            eColorSquares[i]->SetClassNames("tool-square selected");
+        } else {
+            eColorSquares[i]->SetClassNames("tool-square");
+        }
+    }
 }
 
 Color Paint::selectColorSquare(std::string id)

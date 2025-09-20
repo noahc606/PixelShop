@@ -1,0 +1,38 @@
+table.rgb-picker {
+    text-align: left;
+    margin: 4px;
+    padding: 4px;
+    width: 128px;
+}
+    table.rgb-picker tr {
+        height: 28px;
+    }
+    td.rgb-comp-desc {
+        width: 24px;
+        margin: 4px;
+        text-align: center;            
+    }
+    td.rgb-comp-sdr {
+        width: 96px;
+        margin: 4px;
+    }
+        td.rgb-comp-sdr div {
+            position: relative;
+            top: 10%; height: 80%;
+            decorator: horizontal-gradient(rgb(0, 0, 0) rgb(255, 0, 0));
+            cursor: pointer;
+        }
+    td.rgb-comp-tb {
+        width: 36px;
+        margin: 4px;
+    }
+        td.rgb-comp-tb textarea {
+            position: relative;
+            top: 10%;
+            width: 100%; height: 80%;
+            background-color: white;
+        }
+div.rgb-select {
+    position: relative;
+    padding: 8px;
+}

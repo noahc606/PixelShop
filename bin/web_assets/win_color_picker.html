@@ -2,16 +2,65 @@
 <head>
     <title>Color Picker</title>
     <link type="text/rcss" rel="stylesheet" href="../web_assets_default/rml.css"/>
+    <link type="text/rcss" rel="stylesheet" href="win_top_bar.css"/>
     <link type="text/rcss" rel="stylesheet" href="win_color_picker.css"/>
+    <link type="text/rcss" rel="stylesheet" href="win_color_picker_table.css"/>
 </head>
-<body>
+<body id="z-resizing-body">
+    <div class="top-bar">
+        <div class="top-bar-title"><span>Select Color...</span></div>
+        <div class="top-bar-right"><div class="close-btn-container"><button id="close-btn">❌</button></div></div>
+    </div>
     <div class="main">
-        <h1>Select Color</h1>
-        <div class="rgb">
-            <p>Red</p><textarea></textarea>
-            <p>Green</p><textarea></textarea>
-            <p>Blue</p><textarea></textarea>
+        <div class="rgb-panel-container">
+            <div class="rgb-left-panel">
+                <p>Red-Green-Blue</p>
+                <table class="rgb-picker">
+                    <tr>
+                        <td class="rgb-comp-desc">R</td>
+                        <td class="rgb-comp-sdr"><div></div></td>
+                        <td class="rgb-comp-tb"><textarea></textarea></td>
+                    </tr>
+                    <tr>
+                        <td class="rgb-comp-desc">G</td>
+                        <td class="rgb-comp-sdr"><div></div></td>
+                        <td class="rgb-comp-tb"><textarea></textarea></td>
+                    </tr>
+                    <tr>
+                        <td class="rgb-comp-desc">B</td>
+                        <td class="rgb-comp-sdr"><div></div></td>
+                        <td class="rgb-comp-tb"><textarea></textarea></td>
+                    </tr>
+                </table>
+                <p>Hue-Saturation-Value</p>
+                <table class="rgb-picker">
+                    <tr>
+                        <td class="rgb-comp-desc">H</td>
+                        <td class="rgb-comp-sdr"><div></div></td>
+                        <td class="rgb-comp-tb"><textarea></textarea></td>
+                    </tr>
+                    <tr>
+                        <td class="rgb-comp-desc">S</td>
+                        <td class="rgb-comp-sdr"><div></div></td>
+                        <td class="rgb-comp-tb"><textarea></textarea></td>
+                    </tr>
+                    <tr>
+                        <td class="rgb-comp-desc">V</td>
+                        <td class="rgb-comp-sdr"><div></div></td>
+                        <td class="rgb-comp-tb"><textarea></textarea></td>
+                    </tr>
+                </table>
+            </div>
+            <div class="rgb-right-panel">
+
+            </div>
+        </div>
+
+
+        <div class="rgb-select">
+            <button>Select</button>
         </div>
     </div>
+
 </body>
 </html>

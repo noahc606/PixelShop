@@ -10,13 +10,21 @@
 
 class Paint {
 public:
-    Paint(SDL_Renderer* rend, std::string path = "");
+    enum Tool {
+        SELECTION,
+        PENCIL,
+        ERASER,
+        FILL_BUCKET,
+    };
+
+    Paint(SDL_Renderer* rend, std::string openedImgPath = "");
     ~Paint();
     void tick();
     void draw(SDL_Renderer* rend);
     void reload();
 
 private:
+    void selectTool(int toolType);
     void setColorSquare(int id, nch::Color col);
     nch::Color selectColorSquare(std::string id);
     nch::Color selectColorSquare(int idNo);
@@ -27,8 +35,8 @@ private:
     nch::Vec2i cursorPos = {0,0}, lastCursorPos = {-1,-1};
 
     Canvas* canv = nullptr;
-
     int holdingSave = 0;
 
-    nch::Color brushColor;
+    nch::Color toolColor;
+    int toolType = PENCIL;
 };

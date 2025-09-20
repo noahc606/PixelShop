@@ -1,6 +1,10 @@
 #include "Canvas.h"
 #include <SDL2/SDL_image.h>
+#include <SDL2/SDL_pixels.h>
 #include <SDL2/SDL_render.h>
+#include <SDL2/SDL_surface.h>
+#include <cstddef>
+#include <nch/cpp-utils/filepath.h>
 #include <nch/cpp-utils/fs-utils.h>
 #include <nch/cpp-utils/log.h>
 #include <nch/sdl-utils/input.h>
@@ -9,36 +13,35 @@
 #include "Main.h"
 using namespace nch;
 
-Canvas::Canvas(SDL_Renderer* rend, const std::string& path)
+Canvas::Canvas(SDL_Renderer* rend, const std::string& openedImgPath)
 {
     Canvas::rend = rend;
 
     try {
-        if(path=="") throw std::exception();
-        if(!FsUtils::fileExists(path)) throw std::exception();
+        if(openedImgPath=="") throw std::exception();
+        if(!FsUtils::fileExists(openedImgPath)) throw std::exception();
+
+        //Populate file name and directory
+        {
+            FilePath fp(openedImgPath);
+            fileName = fp.getObjectName();
+            fileDir = fp.getParentDirPath();
+            Log::log("Opened image with name \"%s\" within directory \"%s\".", fileName.c_str(), fileDir.c_str());
+        }
         
-        //Create surface 'surfImg' from loading the image @ the provided 'path'.
-        SDL_Surface* surfImg = IMG_Load(path.c_str());
-        if(surfImg==nullptr) throw std::exception();
-
-        //Create empty 'canvas' with same size as 'surfImg'
-        tex = SDL_CreateTexture(rend, Main::getWindowPixelFormat(), SDL_TEXTUREACCESS_TARGET, surfImg->w, surfImg->h);
-        if(tex==nullptr) throw std::exception();
-        TexUtils::clearTexture(rend, tex);
-
-        //Create texture 'texImg' from 'surfImg'
-        SDL_Texture* texImg = SDL_CreateTextureFromSurface(rend, surfImg);
-        SDL_FreeSurface(surfImg);
-        if(texImg==nullptr) throw std::exception();
-        //Copy loaded 'texImg' to canvas
-        SDL_SetRenderTarget(rend, tex);
-        SDL_RenderCopy(rend, texImg, NULL, NULL);
-        SDL_SetRenderTarget(rend, NULL);
-    
+        //Create surface 'surf' from loading the image @ the provided 'path'.
+        SDL_Surface* surfRaw = IMG_Load(openedImgPath.c_str());
+        surf = SDL_ConvertSurface(surfRaw, Main::getPixelFormat(), 0);  SDL_FreeSurface(surfRaw);
+        if(surf==nullptr) throw std::exception();
     } catch(...) {
-        tex = SDL_CreateTexture(rend, Main::getWindowPixelFormat(), SDL_TEXTUREACCESS_TARGET, 100, 100);
-        if(tex==nullptr) throw std::exception();
+        //Create empty surface 'surf' with a predetermined
+        surf = SDL_CreateRGBSurfaceWithFormat(0, 100, 100, 32, SDL_PIXELFORMAT_RGBA8888);
+        if(surf==nullptr) throw std::exception();
     }
+
+    //Create texture 'tex' with same size as 'surf'
+    tex = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, surf->w, surf->h);
+    if(tex==nullptr) throw std::exception();
 
     //Set canvas parameters
     pos = {10, 10};
@@ -50,10 +53,6 @@ Canvas::~Canvas() {
 
 void Canvas::tick()
 {
-    //Save using CTRL+S
-    if(Input::isModKeyDown(KMOD_CTRL) && nch::Input::keyDownTime(SDLK_s)==1) {
-        printf("Saving...\n");
-    }
     //Scale using scroll wheel
     int mwd = Input::getMouseWheelDelta();
     if(mwd!=0) {
@@ -65,10 +64,7 @@ void Canvas::tick()
         Vec2i cPosCurr = getCursorPos();
         Vec2i cPosDelta = cPosCurr-cPosLast;
         
-        Log::log("(%d, %d)", cPosDelta.x, cPosDelta.y);
         pos += (cPosDelta*scale);
-        // pos -= delta;
-        //pos += (currMousePos*((double)lastScale/scale)-currMousePos);
     }
     //Translate using middle mouse click
     if(Input::mouseDownTime(2)==1) {
@@ -86,8 +82,12 @@ void Canvas::tick()
 void Canvas::drawCopy()
 {
     SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
-    Rect canvasDst(workspace.x1()+pos.x, workspace.y1()+pos.y, dims.x*scale, dims.y*scale);
-    SDL_RenderCopy(rend, tex, NULL, &canvasDst.r);
+
+    FRect canvasDst = getDst();
+    Rect cr = Rect(canvasDst.r.x, canvasDst.r.y, canvasDst.r.w, canvasDst.r.h);
+
+    SDL_UpdateTexture(tex, NULL, surf->pixels, surf->w*4);
+    SDL_RenderCopy(rend, tex, NULL, &cr.r);
 }
 
 Vec2i Canvas::getCursorPos()
@@ -107,6 +107,9 @@ FRect Canvas::getCursorSquare()
     );
 }
 
+FRect Canvas::getDst() {
+    return FRect(workspace.x1()+pos.x, workspace.y1()+pos.y, dims.x*scale, dims.y*scale);
+}
 Rect Canvas::getWorkspace() {
     return workspace;
 }
@@ -119,23 +122,88 @@ Vec2i Canvas::getDims() {
 double Canvas::getScale() {
     return scale;
 }
+
+void Canvas::saveAs(std::string savedFileName)
+{
+    if(!FsUtils::dirExists(fileDir)) {
+        Log::warnv(__PRETTY_FUNCTION__, "Parent directory \"%s\" of save location doesn't seem to exist", fileDir.c_str());
+        return;
+    }
+
+    IMG_SavePNG(surf, (fileDir+"/"+savedFileName).c_str());
+}
+void Canvas::save()
+{
+    if(saveNeedsUniqueName) {
+        saveAs(fileName+"_"+Main::getTimeFmtted());
+        return;
+    }
+    saveAs(fileName);
+}
+
 void Canvas::updateWorkspace(nch::Rect wsRect) {
     workspace = wsRect;
 }
 
 void Canvas::drawPixel(const nch::Vec2i& pos, const nch::Color& col)
 {
-    auto oldTgt = SDL_GetRenderTarget(rend); {
-        SDL_SetRenderTarget(rend, tex);
-        SDL_SetRenderDrawColor(rend, col.r, col.g, col.b, col.a);
-        SDL_RenderDrawPoint(rend, pos.x, pos.y);
-    } SDL_SetRenderTarget(rend, oldTgt);
+    if(pos.x<0 || pos.y<0 || pos.x>=surf->w || pos.y>=surf->h) return;
+    TexUtils::setPixelColor(surf, pos.x, pos.y, col.getRGBA());
 }
+
 void Canvas::drawLine(const nch::Vec2i& pos0, const nch::Vec2i& pos1, const nch::Color& col)
 {
-    auto oldTgt = SDL_GetRenderTarget(rend); {
-        SDL_SetRenderTarget(rend, tex);
-        SDL_SetRenderDrawColor(rend, col.r, col.g, col.b, col.a);
-        SDL_RenderDrawLine(rend, pos0.x, pos0.y, pos1.x, pos1.y);
-    } SDL_SetRenderTarget(rend, oldTgt);
+    Vec2i p0 = pos0;
+    Vec2i p1 = pos1;
+
+    int dx = std::abs(p1.x - p0.x);
+    int dy = std::abs(p1.y - p0.y);
+
+    int sx = (p0.x < p1.x) ? 1 : -1;
+    int sy = (p0.y < p1.y) ? 1 : -1;
+
+    int err = dx - dy;
+
+    int x = p0.x;
+    int y = p0.y;
+
+    while (true) {
+        drawPixel({x, y}, col);
+
+        if (x == p1.x && y == p1.y) break;
+
+        int e2 = 2 * err;
+        if (e2 > -dy) {
+            err -= dy;
+            x += sx;
+        }
+        if (e2 < dx) {
+            err += dx;
+            y += sy;
+        }
+    }
+}
+void Canvas::floodPixels(const nch::Vec2i& pos, const nch::Color& col)
+{
+    if(pos.x<0 || pos.y<0 || pos.x>=surf->w || pos.y>=surf->h) return;
+    Rect surfRect = Rect(0, 0, surf->w-1, surf->h-1);
+    std::set<std::pair<int, int>> traversed;
+    auto lastCol = TexUtils::getPixelColor(surf->pixels, surf->format, surf->pitch, pos.x, pos.y);
+    floodPixelsHelper(surfRect, traversed, pos, col, lastCol);
+}
+
+void Canvas::floodPixelsHelper(const nch::Rect& surfRect, std::set<std::pair<int, int>>& traversed, const nch::Vec2i& pos, const nch::Color& newCol, const nch::Color& lastCol) {
+    if(traversed.find({pos.x, pos.y})!=traversed.end()) { return; }
+    traversed.insert({pos.x, pos.y});
+    if(!surfRect.contains(pos.x, pos.y)) { return; }
+    
+    auto pxCol = TexUtils::getPixelColor(surf->pixels, surf->format, surf->pitch, pos.x, pos.y);
+    if(pxCol.getRGB()!=lastCol.getRGB()) { return; }
+
+    TexUtils::setPixelColor(surf, pos.x, pos.y, newCol.getRGBA());
+
+    floodPixelsHelper(surfRect, traversed, pos+Vec2i( 0,-1), newCol, lastCol);
+    floodPixelsHelper(surfRect, traversed, pos+Vec2i( 0, 1), newCol, lastCol);
+    floodPixelsHelper(surfRect, traversed, pos+Vec2i(-1, 0), newCol, lastCol);
+    floodPixelsHelper(surfRect, traversed, pos+Vec2i( 1, 0), newCol, lastCol);
 }

@@ -1,0 +1,44 @@
+div.top-bar {
+    height: 24px;
+    decorator: vertical-gradient(rgb(255, 255, 255) rgb(200, 200, 200));
+
+    background-color: rgb(200, 200, 200);
+    border-width: 1px;
+    border-color: black;
+}
+div.top-bar-title {
+    width: 100%;
+    text-align: center;
+}
+div.top-bar-right {
+    margin: 0px;
+    padding: 0px; 
+
+    position: relative;
+
+    display: flex;
+    justify-content: flex-end;
+    top: -22px;
+    height: 20px;
+}
+div.top-bar-right div.close-btn-container {
+    margin: 1px;
+    padding: 0px;
+    text-align: center;
+    height: 100%;
+    width: 22px;
+    font-weight: bold;
+
+    color: rgb(0, 0, 0);
+    decorator: vertical-gradient(rgb(223, 149, 149) rgb(235, 95, 95));
+    border-width: 1px;
+    border-color: rgb(85, 6, 6);
+}
+
+div.top-bar-right div.close-btn-container:hover {
+    cursor: pointer;
+
+    decorator: vertical-gradient(rgb(175, 94, 94) rgb(177, 30, 30));
+    color: rgb(255, 255, 255);
+    border-color: rgb(255, 0, 0);
+}

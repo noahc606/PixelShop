@@ -1,4 +1,6 @@
 #include "GUIs.h"
+#include <nch/cpp-utils/log.h>
+#include <stdexcept>
 #include <tinyfiledialogs/tinyfiledialogs.h>
 #include "ColorPicker.h"
 #include "Window.h"
@@ -21,15 +23,22 @@ void GUIs::globalFree()
 
 void GUIs::tick()
 {
-    for(int i = 0; i<windows.size(); i++) {
-        windows[i]->tick();
+    for(int i = windows.size()-1; i>=0; i--) {
+        if(!windows[i]->isAlive()) {
+            delete windows[i];
+            windows.erase(windows.begin()+i);
+        }
     }
+    for(int i = 0; i<windows.size(); i++) { windows[i]->tick(); }
 }
 void GUIs::draw()
 {
-    for(int i = 0; i<windows.size(); i++) {
-        windows[i]->draw();
-    }
+    for(int i = 0; i<windows.size(); i++) { windows[i]->draw(); }
+}
+
+void GUIs::events(SDL_Event& evt)
+{
+    for(int i = 0; i<windows.size(); i++) { windows[i]->events(evt); }
 }
 
 std::string GUIs::showFileDialogNative()
@@ -45,6 +54,10 @@ std::string GUIs::showFileDialogNative()
         NULL, // optional filter description
         0 // forbids multiple selections
     );
+
+    if(selection==nullptr) {
+        throw std::invalid_argument("User pressed \"X\" on the dialog window.");
+    }
     printf("Selected the file \"%s\".\n", selection);
     return selection;
 }

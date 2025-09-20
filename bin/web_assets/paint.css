@@ -14,13 +14,38 @@ div.toolbar {
     height: 100%;
 }
 
-div.toolbar-palette-holder {
+div.toolbar-section {
     width: 100%;
     text-align: center;
 }
 div.toolbar-palette {
     display: flex;
     justify-content: center;
+}
+
+div.tool-square {
+    width: 24px;
+    height: 24px;
+    margin-left: 1px; margin-right: 1px;
+    margin-top: 5px; margin-bottom: 5px;
+
+    border-width: 1px;
+    border-color: rgb(0, 0, 0);
+    background-color: rgb(200, 200, 200);
+}
+div.tool-square.selected {
+    border-color: rgb(255, 255, 255);
+    border-width: 2px;
+}
+div.tool-square:hover {
+    border-color: rgb(255, 255, 0);
+    cursor: pointer;
+}
+div.tool-square img {
+    width: 22px;
+    height: 22px;
+    margin-top: 1px; margin-bottom: 1px;
+    margin-left: 1px; margin-right: 1px;
 }
 
 div.color-square
@@ -39,4 +64,5 @@ div.color-square.selected {
 }
 div.color-square:hover {
     border-color: rgb(255, 255, 0);
+    cursor: pointer;
 }

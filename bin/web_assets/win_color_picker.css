@@ -1,20 +1,37 @@
 body {
     background-color: rgba(255, 255, 255, 1);
 }
-
 div.main {
-    height: 100%;
-    width: 100%;
     decorator: horizontal-gradient(rgb(255, 235, 205) rgb(163, 163, 163));
-    border-width: 2px;
-    border-color: black;
-
+    border-width: 1px; border-color: black;
+}
+div.rgb-select, h1 {
     text-align: center;
 }
-div.rgb {
-    text-align: left;
+
+div.rgb-panel-container {
+    display: flex;
+    justify-content: center;
+}
+div.rgb-left-panel {
+    padding: 8px;
+}
+div.rgb-right-panel {
+    width: 256px;
+    height: 256px;
+    background-color: green;
 }
 
-textarea {
-    background-color: white;
+
+div.rgb-select button {
+    position: relative;
+
+    padding: 4px;
+    border: 2px;
+    border-color: rgb(88, 88, 88);
+    decorator: horizontal-gradient(rgb(223, 192, 149) rgb(221, 199, 99));
+}
+div.rgb-select button:hover {
+    decorator: horizontal-gradient(rgb(184, 139, 98) rgb(211, 214, 27));
+    cursor: pointer;
 }

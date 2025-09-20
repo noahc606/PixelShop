@@ -1,8 +1,7 @@
 #include "Main.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
-#include <SDL2/SDL_render.h>
-#include <SDL2/SDL_video.h>
+#include <SDL2/SDL_pixels.h>
 #include <nch/cpp-utils/filepath.h>
 #include <nch/sdl-utils/input.h>
 #include <nch/sdl-utils/main-loop-driver.h>
@@ -13,6 +12,7 @@ using namespace nch;
 
 SDL_Window* Main::window = nullptr;
 SDL_Renderer* Main::renderer = nullptr;
+SDL_PixelFormat* Main::pxFmt = nullptr;
 std::string Main::basePath = "";
 Paint* Main::paint = nullptr;
 bool Main::tickedYet = false;
@@ -21,16 +21,22 @@ int main() { Main m; return 0; }
 Main::Main()
 {
     printf("Starting...\n");
-    Init::libSDL(basePath, window, renderer);
+    Init::libSDL(basePath, window, renderer, pxFmt);
     Init::libRmlUi(renderer, basePath);
     GUIs::globalInit(renderer);
 
     std::string openedPath = "";
     #ifndef EMSCRIPTEN
-        openedPath = GUIs::showFileDialogNative();
+        try {
+            openedPath = GUIs::showFileDialogNative();
+            paint = new Paint(renderer, openedPath);
+        }
+        catch(...) {
+            paint = new Paint(renderer);
+        }
     #endif
 
-    paint = new Paint(renderer, openedPath);
+    
     MainLoopDriver mld(renderer, &tick, 50, &draw, 200, events);
 }
 Main::~Main()
@@ -46,9 +52,9 @@ Main::~Main()
 SDL_Renderer* Main::getRenderer() {
     return renderer;
 }
-uint32_t Main::getWindowPixelFormat()
+SDL_PixelFormat* Main::getPixelFormat()
 {
-    return SDL_GetWindowPixelFormat(window);
+    return pxFmt;
 }
 
 int Main::getWidth() {
@@ -56,6 +62,14 @@ int Main::getWidth() {
 }
 int Main::getHeight() {
     int ret; SDL_GetWindowSize(window, NULL, &ret); return ret;
+}
+std::string Main::getTimeFmtted()
+{
+    std::time_t now = std::time(NULL);
+    std::tm* tmNow = std::gmtime(&now);
+    char buffer[20];
+    std::strftime(buffer, sizeof(buffer), "%Y-%m-%d_%H-%M-%S", tmNow);
+    return buffer;
 }
 
 void Main::tick()
@@ -90,5 +104,5 @@ void Main::draw(SDL_Renderer* rend)
 
 void Main::events(SDL_Event& evt)
 {
-
+    GUIs::events(evt);
 }
