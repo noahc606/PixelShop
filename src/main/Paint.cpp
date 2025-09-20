@@ -51,7 +51,7 @@ void Paint::tick()
     if(!justSaved) {
         if(Input::keyDownTime(SDLK_s)==1) { selectTool(SELECTION); }
         if(Input::keyDownTime(SDLK_e)==1) { selectTool(ERASER); }
-        if(Input::keyDownTime(SDLK_p)==1) { selectTool(PENCIL); }
+        if(Input::keyDownTime(SDLK_d)==1) { selectTool(PENCIL); }
         if(Input::keyDownTime(SDLK_f)==1) { selectTool(FILL_BUCKET); }
     }
 
