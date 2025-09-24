@@ -36,8 +36,11 @@ private:
     nch::WebEventHolder webEvents;
 
     nch::Vec2i cursorPos = {0,0}, lastCursorPos = {-1,-1};
+    nch::Rect selection = nch::Rect(0, 0, 0, 0);
 
     Canvas* canv = nullptr;
+    
+
     int holdingSave = 0;
 
     nch::Color toolColor;

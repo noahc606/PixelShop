@@ -13,6 +13,7 @@ public:
     void drawCopy();
 
     nch::Vec2i getCursorPos();
+    nch::FRect getScreenSquare(int x, int y, int w, int h);
     nch::FRect getCursorSquare();
     nch::FRect getDst();
     nch::Rect getWorkspace();

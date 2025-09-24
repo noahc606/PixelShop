@@ -1,5 +1,6 @@
 #include "Paint.h"
 #include <SDL2/SDL_image.h>
+#include <SDL2/SDL_rect.h>
 #include <cmath>
 #include <nch/cpp-utils/fs-utils.h>
 #include <nch/cpp-utils/log.h>
@@ -116,7 +117,9 @@ void Paint::draw(SDL_Renderer* rend)
 
     //Draw when holding mouse down
     if(Input::isMouseDown(1)) {
-        drawingLeftMouseDown();
+        if(workspace.contains(Input::getMouseX(), Input::getMouseY())) {
+            drawingLeftMouseDown();
+        }
     }
 
     /* Draw workspace */
@@ -131,7 +134,6 @@ void Paint::draw(SDL_Renderer* rend)
             Rect dst(workspace.x1()+ix*bgSquareSize, workspace.y1()+iy*bgSquareSize, bgSquareSize, bgSquareSize);
             SDL_RenderFillRect(rend, &dst.r);
         }}
-
         //Outline color (oscillates between light gray and white)
         int oc; {
             uint64_t ms = Timer::getTicks();
@@ -140,7 +142,6 @@ void Paint::draw(SDL_Renderer* rend)
             if(oc<127) oc = 127;
             if(oc>255) oc = 255;
         }
-
         //Draw canvas outline
         SDL_SetRenderDrawColor(rend, oc, oc, oc, 255);
         auto rCanvOutline = canv->getDst();
@@ -153,6 +154,10 @@ void Paint::draw(SDL_Renderer* rend)
         SDL_SetRenderDrawColor(rend, oc, oc, oc, 255);
         FRect cursorDst = canv->getCursorSquare();
         SDL_RenderDrawRectF(rend, &cursorDst.r);
+        //Draw selection outline
+        SDL_SetRenderDrawColor(rend, oc, oc, oc/4, 255);
+        FRect rSelOutline = canv->getScreenSquare(selection.r.x, selection.r.y, selection.r.w, selection.r.h);
+        SDL_RenderDrawRectF(rend, &rSelOutline.r);
     }
 
     //Draw sidebar
@@ -198,8 +203,34 @@ void Paint::drawingLeftMouseDown()
 {
     if(!colorPickerSelected && colorPickerReleased) {
         switch (toolType) {
-            case PENCIL: { canv->drawLine(lastCursorPos, cursorPos, toolColor); } break;
-            case ERASER: { canv->drawLine(lastCursorPos, cursorPos, Color(255, 255, 255, 0)); } break;
+            case SELECTION: {
+                auto cursorPos2 = cursorPos;
+                if(cursorPos2.x<0) cursorPos2.x = 0;
+                if(cursorPos2.y<0) cursorPos2.y = 0;
+                if(cursorPos2.x>=canv->getDims().x) cursorPos2.x = canv->getDims().x-1;
+                if(cursorPos2.y>=canv->getDims().y) cursorPos2.y = canv->getDims().y-1;
+                
+                if(Input::mouseDownTime(1)==1) {
+                    selection.r.x = cursorPos2.x;
+                    selection.r.y = cursorPos2.y;
+                    selection.r.w = 1;
+                    selection.r.h = 1;
+                } else {
+                    selection.r.w = cursorPos2.x-selection.r.x;
+                    selection.r.h = cursorPos2.y-selection.r.y;
+                    if(selection.r.w>=0) selection.r.w++;
+                    if(selection.r.h>=0) selection.r.h++;
+
+                    if(selection.x2()>canv->getDims().x) {
+                        selection.r.w = canv->getDims().x-selection.r.x;
+                    }
+                    if(selection.y2()>canv->getDims().y) {
+                        selection.r.h = canv->getDims().y-selection.r.y;
+                    }
+                }
+            } break;
+            case PENCIL:      { canv->drawLine(lastCursorPos, cursorPos, toolColor); } break;
+            case ERASER:      { canv->drawLine(lastCursorPos, cursorPos, Color(255, 255, 255, 0)); } break;
             case FILL_BUCKET: { canv->floodPixels(cursorPos, toolColor); } break;
         }
     } else {

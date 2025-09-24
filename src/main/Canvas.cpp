@@ -97,18 +97,24 @@ Vec2i Canvas::getCursorPos()
         std::floor((Input::getMouseY()-pos.y-workspace.y1())/(double)scale)
     );
 }
+
+FRect Canvas::getScreenSquare(int x, int y, int w, int h)
+{
+    return FRect(
+        workspace.x1()+pos.x+x*scale,
+        workspace.y1()+pos.y+y*scale,
+        w*scale,
+        h*scale
+    );
+}
 FRect Canvas::getCursorSquare()
 {
     auto cursorPos = getCursorPos();
-    return FRect(
-        workspace.x1()+pos.x+cursorPos.x*scale,
-        workspace.y1()+pos.y+cursorPos.y*scale,
-        scale, scale
-    );
+    return getScreenSquare(cursorPos.x, cursorPos.y, 1, 1);
 }
 
 FRect Canvas::getDst() {
-    return FRect(workspace.x1()+pos.x, workspace.y1()+pos.y, dims.x*scale, dims.y*scale);
+    return getScreenSquare(0, 0, dims.x, dims.y);
 }
 Rect Canvas::getWorkspace() {
     return workspace;
@@ -130,7 +136,7 @@ Color Canvas::getPixel(const nch::Vec2i& pos)
 void Canvas::saveAs(std::string savedFileName)
 {
     if(!FsUtils::dirExists(fileDir)) {
-        Log::warnv(__PRETTY_FUNCTION__, "Parent directory \"%s\" of save location doesn't seem to exist", fileDir.c_str());
+        Log::warnv(__PRETTY_FUNCTION__, "canceling save operation", "Parent directory \"%s\" of save location doesn't seem to exist", fileDir.c_str());
         return;
     }
 
@@ -139,7 +145,8 @@ void Canvas::saveAs(std::string savedFileName)
 void Canvas::save()
 {
     if(saveNeedsUniqueName) {
-        saveAs(fileName+"_"+Main::getTimeFmtted());
+        FilePath fp(fileName);
+        saveAs(fp.getObjectName(false)+"_"+Main::getTimeFmtted()+"."+fp.getExtension());
         return;
     }
     saveAs(fileName);
@@ -193,7 +200,11 @@ void Canvas::floodPixels(const nch::Vec2i& pos, const nch::Color& col)
     Rect surfRect = Rect(0, 0, surf->w-1, surf->h-1);
     std::set<std::pair<int, int>> traversed;
     auto lastCol = TexUtils::getPixelColor(surf->pixels, surf->format, surf->pitch, pos.x, pos.y);
-    floodPixelsHelper(surfRect, traversed, pos, col, lastCol);
+    
+    int threshold = 1;
+    if(threshold==1 && lastCol==col) {} else {
+        floodPixelsHelper(surfRect, traversed, pos, col, lastCol);
+    }
 }
 
 void Canvas::floodPixelsHelper(const nch::Rect& surfRect, std::set<std::pair<int, int>>& traversed, const nch::Vec2i& pos, const nch::Color& newCol, const nch::Color& lastCol) {

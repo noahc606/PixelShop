@@ -3,6 +3,7 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_pixels.h>
 #include <nch/cpp-utils/filepath.h>
+#include <nch/cpp-utils/log.h>
 #include <nch/sdl-utils/input.h>
 #include <nch/sdl-utils/main-loop-driver.h>
 #include "GUIs.h"
@@ -37,7 +38,7 @@ Main::Main()
     #endif
 
     
-    MainLoopDriver mld(renderer, &tick, 50, &draw, 200, events);
+    MainLoopDriver mld(renderer, &tick, 50, &draw, 1000, events);
 }
 Main::~Main()
 {
@@ -77,6 +78,10 @@ void Main::tick()
     if(paint!=nullptr) {
         paint->tick();
         tickedYet = true;
+    }
+
+    if(MainLoopDriver::getNumTicksPassedTotal()%50==0) {
+        Log::log(MainLoopDriver::getPerformanceInfo());
     }
 
     if(Input::keyDownTime(SDLK_F5)==1) {
