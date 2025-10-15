@@ -1,0 +1,32 @@
+div.item {
+    padding-left: 16px; padding-right: 16px;
+    height: 22px;
+
+    border: 1px; border-color: rgb(180, 150, 108);
+    decorator: horizontal-gradient(rgb(223, 192, 149) rgb(221, 199, 99));
+    display: flex;
+    justify-content: flex-start;
+
+    cursor: pointer;
+}
+div.item:hover {
+    decorator: horizontal-gradient(rgb(184, 139, 98) rgb(211, 214, 27));
+}
+
+div.item * {
+    pointer-events: none;
+}
+
+div.item div {
+    width: 50%;
+}
+div.item div:nth-child(1) {
+    display: flex;
+    justify-content: flex-start;
+}
+div.item div:nth-child(2) {
+    display: flex;
+    justify-content: flex-end;
+    color: rgb(150, 121, 81);
+    font-style: italic;
+}

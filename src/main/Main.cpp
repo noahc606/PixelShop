@@ -29,7 +29,7 @@ Main::Main()
     std::string openedPath = "";
     #ifndef EMSCRIPTEN
         try {
-            openedPath = GUIs::showFileDialogNative();
+            openedPath = GUIs::showFileDialog();
             paint = new Paint(renderer, openedPath);
         }
         catch(...) {
@@ -38,7 +38,7 @@ Main::Main()
     #endif
 
     
-    MainLoopDriver mld(renderer, &tick, 50, &draw, 1000, events);
+    MainLoopDriver mld(renderer, &tick, 50, &draw, 120, events);
 }
 Main::~Main()
 {
@@ -78,10 +78,6 @@ void Main::tick()
     if(paint!=nullptr) {
         paint->tick();
         tickedYet = true;
-    }
-
-    if(MainLoopDriver::getNumTicksPassedTotal()%50==0) {
-        Log::log(MainLoopDriver::getPerformanceInfo());
     }
 
     if(Input::keyDownTime(SDLK_F5)==1) {

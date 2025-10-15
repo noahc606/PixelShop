@@ -23,9 +23,11 @@ public:
     void saveAs(std::string savedFileName);
     void save();
     void updateWorkspace(nch::Rect wsRect);
-    void drawPixel(const nch::Vec2i& pos, const nch::Color& col);
-    void drawLine(const nch::Vec2i& pos0, const nch::Vec2i& pos1, const nch::Color& col);
-    void floodPixels(const nch::Vec2i& pos, const nch::Color& col);
+    void editDrawPixel(const nch::Vec2i& pos, const nch::Color& col);
+    void editDrawLine(const nch::Vec2i& pos0, const nch::Vec2i& pos1, const nch::Color& col);
+    void editFloodPixels(const nch::Vec2i& pos, const nch::Color& col);
+    void editFlattenImage();
+    void editFlattenImageTranslucency();
 private:
 
     void floodPixelsHelper(const nch::Rect& surfRect, std::set<std::pair<int, int>>& traversed, const nch::Vec2i& pos, const nch::Color& newCol, const nch::Color& lastCol);

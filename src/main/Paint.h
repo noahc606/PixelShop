@@ -19,12 +19,15 @@ public:
 
     Paint(SDL_Renderer* rend, std::string openedImgPath = "");
     ~Paint();
+    void reload();
     void tick();
     void draw(SDL_Renderer* rend);
-    void reload();
 
 private:
+    void tickingControls();    
     void drawingLeftMouseDown();
+    void updateWorkspace();
+    
 
     void selectTool(int toolType);
     void setColorSquare(int idNo, nch::Color col);
@@ -39,6 +42,8 @@ private:
     nch::Rect selection = nch::Rect(0, 0, 0, 0);
 
     Canvas* canv = nullptr;
+    bool focusedWorkspace = true;
+    int64_t workspaceUnfocusedAge = 0;
     
 
     int holdingSave = 0;

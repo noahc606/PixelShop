@@ -7,62 +7,16 @@ p {
     color: black;
 }
 
-div.sidebar {
+div.menupanel {
+    display: flex;
+    decorator: vertical-gradient(rgb(255, 235, 205) rgb(163, 163, 163));
+    border: 1px;
+    border-color: rgb(73, 73, 73);
+}
+
+div.sidepanel {
     position: relative;
     decorator: horizontal-gradient(rgb(255, 235, 205) rgb(163, 163, 163));
     width: 128px;
     height: 100%;
-}
-
-div.sidebar-section {
-    width: 100%;
-    text-align: center;
-}
-div.toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-
-div.tool-square {
-    width: 24px;
-    height: 24px;
-    margin-left: 1px; margin-right: 1px;
-    margin-top: 5px; margin-bottom: 5px;
-
-    border-width: 1px;
-    border-color: rgb(0, 0, 0);
-    background-color: rgb(200, 200, 200);
-}
-div.tool-square.selected {
-    border-color: rgb(255, 255, 255);
-    border-width: 2px;
-}
-div.tool-square:hover {
-    border-color: rgb(255, 255, 0);
-    cursor: pointer;
-}
-div.tool-square img {
-    width: 22px;
-    height: 22px;
-    margin-top: 1px; margin-bottom: 1px;
-    margin-left: 1px; margin-right: 1px;
-}
-
-div.color-square
-{
-    width: 16px;
-    height: 16px;
-    margin: 1px;
-
-    border-width: 1px;
-    border-color: rgb(0, 0, 0);
-}
-div.color-square.selected {
-    border-color: rgb(255, 255, 255);
-    border-width: 2px;
-}
-div.color-square:hover {
-    border-color: rgb(255, 255, 0);
-    cursor: pointer;
 }

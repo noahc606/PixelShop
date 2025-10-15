@@ -2,12 +2,15 @@
 #include <nch/cpp-utils/log.h>
 #include <stdexcept>
 #include <tinyfiledialogs/tinyfiledialogs.h>
-#include "ColorPicker.h"
+#include "ContextMenu.h"
+#include "PopupColorPicker.h"
+#include "PopupGeneric.h"
 #include "Window.h"
 
 using namespace nch;
 
 std::vector<Window*> GUIs::windows;
+std::set<std::string> GUIs::pendingEvents;
 
 void GUIs::globalInit(SDL_Renderer* rend) {
     Window::initRenderer(rend);
@@ -41,7 +44,7 @@ void GUIs::events(SDL_Event& evt)
     for(int i = 0; i<windows.size(); i++) { windows[i]->events(evt); }
 }
 
-std::string GUIs::showFileDialogNative()
+std::string GUIs::showFileDialog()
 {
     char const* lFilterPatterns[] = { "*.png", "*.gif", "*.jpg" };
 
@@ -62,9 +65,41 @@ std::string GUIs::showFileDialogNative()
     return selection;
 }
 
-void GUIs::addColorPickerDialog(const Color& originalColor)
+void GUIs::addColorPickerPopup(const Color& originalColor)
 {
-    addWindow(new ColorPicker());
+    addWindow(new PopupColorPicker());
+}
+
+void GUIs::setContextMenu(const Vec2i& spawnPos, int itemSet)
+{
+    removeContextMenus();
+    addWindow(new ContextMenu(spawnPos, itemSet));
+}
+void GUIs::removeContextMenus()
+{
+    for(int i = 0; i<windows.size(); i++) {
+        if(windows[i]->getType()==Window::CONTEXT_MENU) {
+            windows[i]->close();
+        }
+    }
+}
+
+bool GUIs::doesWindowTypeExist(int windowType)
+{
+    for(int i = 0; i<windows.size(); i++) {
+        if(windows[i]->getType()==windowType && windows[i]->isAlive()) {
+            return true;
+        }
+    }
+    return false;
+}
+bool GUIs::doesContextMenuExist() {
+    return doesWindowTypeExist(Window::CONTEXT_MENU);
+}
+
+void GUIs::addGenericPopup(const std::string& webdocAssetPath)
+{
+    addWindow(new PopupGeneric(webdocAssetPath));
 }
 
 Window* GUIs::addWindow(Window* win)
@@ -78,4 +113,18 @@ void GUIs::removeLastWindow()
 
     delete windows.at(windows.size()-1);
     windows.erase(windows.end());
+}
+
+void GUIs::addPendingEvent(std::string evtID)
+{
+    pendingEvents.insert(evtID);
+}
+bool GUIs::tryPopPendingEvent(std::string evtID)
+{
+    auto peItr = pendingEvents.find(evtID);
+    if(peItr==pendingEvents.end()) {
+        return false;
+    }
+    pendingEvents.erase(peItr);
+    return true;
 }

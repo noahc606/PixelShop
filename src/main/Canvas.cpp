@@ -156,45 +156,39 @@ void Canvas::updateWorkspace(nch::Rect wsRect) {
     workspace = wsRect;
 }
 
-void Canvas::drawPixel(const nch::Vec2i& pos, const nch::Color& col)
+void Canvas::editDrawPixel(const nch::Vec2i& pos, const nch::Color& col)
 {
     if(pos.x<0 || pos.y<0 || pos.x>=surf->w || pos.y>=surf->h) return;
     TexUtils::setPixelColor(surf, pos.x, pos.y, col.getRGBA());
 }
 
-void Canvas::drawLine(const nch::Vec2i& pos0, const nch::Vec2i& pos1, const nch::Color& col)
+void Canvas::editDrawLine(const nch::Vec2i& pos0, const nch::Vec2i& pos1, const nch::Color& col)
 {
-    Vec2i p0 = pos0;
-    Vec2i p1 = pos1;
+    Vec2i p0 = pos0;    Vec2i p1 = pos1;
 
-    int dx = std::abs(p1.x - p0.x);
-    int dy = std::abs(p1.y - p0.y);
-
-    int sx = (p0.x < p1.x) ? 1 : -1;
-    int sy = (p0.y < p1.y) ? 1 : -1;
-
-    int err = dx - dy;
+    int dx = std::abs(p1.x-p0.x);   int dy = std::abs(p1.y-p0.y);
+    int sx = (p0.x<p1.x) ? 1:-1;    int sy = (p0.y<p1.y) ? 1:-1;
+    int err = dx-dy;
 
     int x = p0.x;
     int y = p0.y;
+    while(true) {
+        editDrawPixel({x, y}, col);
 
-    while (true) {
-        drawPixel({x, y}, col);
-
-        if (x == p1.x && y == p1.y) break;
+        if(x == p1.x && y == p1.y) break;
 
         int e2 = 2 * err;
-        if (e2 > -dy) {
+        if(e2>-dy) {
             err -= dy;
             x += sx;
         }
-        if (e2 < dx) {
+        if(e2 < dx) {
             err += dx;
             y += sy;
         }
     }
 }
-void Canvas::floodPixels(const nch::Vec2i& pos, const nch::Color& col)
+void Canvas::editFloodPixels(const nch::Vec2i& pos, const nch::Color& col)
 {
     if(pos.x<0 || pos.y<0 || pos.x>=surf->w || pos.y>=surf->h) return;
     Rect surfRect = Rect(0, 0, surf->w-1, surf->h-1);
@@ -206,6 +200,28 @@ void Canvas::floodPixels(const nch::Vec2i& pos, const nch::Color& col)
         floodPixelsHelper(surfRect, traversed, pos, col, lastCol);
     }
 }
+void Canvas::editFlattenImage()
+{
+    for(int ix = 0; ix<surf->w; ix++) {
+    for(int iy = 0; iy<surf->h; iy++) {
+        auto col = TexUtils::getPixelColor(surf->pixels, surf->format, surf->pitch, ix, iy);
+        if(col.a==255) continue;
+        col.a = 255;
+        TexUtils::setPixelColor(surf, ix, iy, col.getRGBA());
+    }}
+}
+void Canvas::editFlattenImageTranslucency()
+{
+    for(int ix = 0; ix<surf->w; ix++) {
+    for(int iy = 0; iy<surf->h; iy++) {
+        auto col = TexUtils::getPixelColor(surf->pixels, surf->format, surf->pitch, ix, iy);
+        if(col.a==255) continue;
+        if(col.a!=0) {
+            col.a = 255;
+            TexUtils::setPixelColor(surf, ix, iy, col.getRGBA());
+        }
+    }}
+}
 
 void Canvas::floodPixelsHelper(const nch::Rect& surfRect, std::set<std::pair<int, int>>& traversed, const nch::Vec2i& pos, const nch::Color& newCol, const nch::Color& lastCol) {
     if(traversed.find({pos.x, pos.y})!=traversed.end()) { return; }
@@ -213,7 +229,7 @@ void Canvas::floodPixelsHelper(const nch::Rect& surfRect, std::set<std::pair<int
     if(!surfRect.contains(pos.x, pos.y)) { return; }
     
     auto pxCol = TexUtils::getPixelColor(surf->pixels, surf->format, surf->pitch, pos.x, pos.y);
-    if(pxCol.getRGB()!=lastCol.getRGB()) { return; }
+    if(pxCol!=lastCol) { return; }
 
     TexUtils::setPixelColor(surf, pos.x, pos.y, newCol.getRGBA());
 
