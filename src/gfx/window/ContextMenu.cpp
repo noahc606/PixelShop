@@ -7,7 +7,7 @@ using namespace nch;
 std::vector<std::map<std::string, std::vector<std::string>>> ContextMenu::itemSets = {
     {
         //{"new_image", {"New Image"}},
-        //{"open_image", {"Open Image..."}},
+        {"open_image", {"Open Image..."}},
         {"save", {"Save", "Ctrl+S"}},
         //{"save_as", {"Save As...", "Ctrl+Shift+S"}}
     },
@@ -68,6 +68,10 @@ void ContextMenu::tick() {
     WebEvent wevt;
     while((wevt = webEvents.popEvent()).exists()) {
         GUIs::addPendingEvent(wevt.getElementID());
+    }
+
+    if(age>1 && Input::mouseDownTime(1)==1) {
+        GUIs::removeContextMenus();
     }
 }
 void ContextMenu::draw()

@@ -19,6 +19,7 @@ PopupColorPicker::PopupColorPicker(const Vec2i& dims)
         SDL_FreeSurface(surf);
     }
 
+    webview.getWorkingDocument();
 
     reload();
 }

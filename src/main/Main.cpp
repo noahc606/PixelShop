@@ -25,19 +25,8 @@ Main::Main()
     Init::libSDL(basePath, window, renderer, pxFmt);
     Init::libRmlUi(renderer, basePath);
     GUIs::globalInit(renderer);
-
-    std::string openedPath = "";
-    #ifndef EMSCRIPTEN
-        try {
-            openedPath = GUIs::showFileDialog();
-            paint = new Paint(renderer, openedPath);
-        }
-        catch(...) {
-            paint = new Paint(renderer);
-        }
-    #endif
-
-    
+        
+    paint = new Paint(renderer);
     MainLoopDriver mld(renderer, &tick, 50, &draw, 120, events);
 }
 Main::~Main()
@@ -53,8 +42,7 @@ Main::~Main()
 SDL_Renderer* Main::getRenderer() {
     return renderer;
 }
-SDL_PixelFormat* Main::getPixelFormat()
-{
+SDL_PixelFormat* Main::getPixelFormat() {
     return pxFmt;
 }
 
@@ -106,4 +94,5 @@ void Main::draw(SDL_Renderer* rend)
 void Main::events(SDL_Event& evt)
 {
     GUIs::events(evt);
+    paint->events(evt);
 }

@@ -68,15 +68,12 @@ void Paint::reload()
     }
     toolColor = selectColorSquare(0);
 }
-
-
-
 void Paint::tick()
 {
     //Update workspace state
     updateWorkspace();
 
-    //Tick webview/process reloads and events
+    //Tick webview, then process reloads and events
     webview.tick();
     WebEvent wevt;
     while((wevt = webEvents.popEvent()).exists()) {
@@ -88,16 +85,12 @@ void Paint::tick()
         }
 
         if(wevt.getElementID()=="menupanel-file") {
-            if(GUIs::doesContextMenuExist()) {
-                GUIs::removeContextMenus();
-            } else {
+            if(!GUIs::doesContextMenuExist()) {
                 GUIs::setContextMenu(Vec2i(elemRect.x1(), elemRect.y2()+2), ContextMenu::FILE);
             }
         }
         if(wevt.getElementID()=="menupanel-edit") {
-            if(GUIs::doesContextMenuExist()) {
-                GUIs::removeContextMenus();
-            } else {
+            if(!GUIs::doesContextMenuExist()) {
                 GUIs::setContextMenu(Vec2i(elemRect.x1(), elemRect.y2()+2), ContextMenu::EDIT);
             }
         }
@@ -109,7 +102,7 @@ void Paint::tick()
             //canv->promptNewImage();
         }
         if(GUIs::tryPopPendingEvent("open_image")) {
-            //canv->promptOpenImage();
+            requestedImageOpen = true;
         }
         if(GUIs::tryPopPendingEvent("save")) {
             canv->save();
@@ -150,9 +143,17 @@ void Paint::draw(SDL_Renderer* rend)
     }
 
     //Draw when holding mouse down
-    if(focusedWorkspace && Input::isMouseDown(1)) {
-        if(workspace.contains(Input::getMouseX(), Input::getMouseY())) {
-            drawingLeftMouseDown();
+    if(focusedWorkspace) {
+        if(Input::isMouseDown(1)) {
+            if(workspace.contains(Input::getMouseX(), Input::getMouseY())) {
+                drawingLeftMouseDown();
+            }
+        } else {
+            if(selection.r.w==0 || selection.r.h==0) {
+                selection = {0, 0, 0, 0};
+                selCorner1 = {-1, -1};
+                selCorner2 = {-2, -2};
+            }
         }
     }
 
@@ -189,9 +190,11 @@ void Paint::draw(SDL_Renderer* rend)
         FRect cursorDst = canv->getCursorSquare();
         SDL_RenderDrawRectF(rend, &cursorDst.r);
         //Draw selection outline
-        SDL_SetRenderDrawColor(rend, oc, oc, oc/4, 255);
-        FRect rSelOutline = canv->getScreenSquare(selection.r.x, selection.r.y, selection.r.w, selection.r.h);
-        SDL_RenderDrawRectF(rend, &rSelOutline.r);
+        if(isSelectionValid()) {
+            SDL_SetRenderDrawColor(rend, oc, oc, oc/4, 255);
+            FRect rSelOutline = canv->getScreenSquare(selection.r.x, selection.r.y, selection.r.w, selection.r.h);
+            SDL_RenderDrawRectF(rend, &rSelOutline.r);
+        }
     }
 
     //Draw sidepanel
@@ -209,34 +212,63 @@ void Paint::draw(SDL_Renderer* rend)
         SDL_RenderFillRect(rend, NULL);
     }
 }
+void Paint::events(SDL_Event& evt)
+{
+    if(evt.type==SDL_MOUSEBUTTONUP && requestedImageOpen) {
+        std::string openedPath = "";
+        try {
+            openedPath = GUIs::showFileDialog();
+        } catch(...) {}
+        delete canv;
+        canv = new Canvas(Main::getRenderer(), openedPath);
+
+        requestedImageOpen = false;
+    }
+}
+
+bool Paint::isSelectionValid()
+{
+    return (
+        selection.r.w>0 && selection.r.h>0 &&
+        selection.r.x>=0 && selection.r.y>=0 &&
+        selection.x2()<=canv->getDims().x && selection.y2()<=canv->getDims().y
+    );
+}
+
 void Paint::drawingLeftMouseDown()
 {
     if(!colorPickerSelected && colorPickerReleased) {
         switch(toolType) {
             case SELECTION: {
-                auto cursorPos2 = cursorPos;
-                if(cursorPos2.x<0) cursorPos2.x = 0;
-                if(cursorPos2.y<0) cursorPos2.y = 0;
-                if(cursorPos2.x>=canv->getDims().x) cursorPos2.x = canv->getDims().x-1;
-                if(cursorPos2.y>=canv->getDims().y) cursorPos2.y = canv->getDims().y-1;
-                
-                if(Input::mouseDownTime(1)==1) {
-                    selection.r.x = cursorPos2.x;
-                    selection.r.y = cursorPos2.y;
-                    selection.r.w = 1;
-                    selection.r.h = 1;
-                } else {
-                    selection.r.w = cursorPos2.x-selection.r.x;
-                    selection.r.h = cursorPos2.y-selection.r.y;
-                    if(selection.r.w>=0) selection.r.w++;
-                    if(selection.r.h>=0) selection.r.h++;
+                //Get clipped cursor pos
+                auto cursorPosClipped = cursorPos; {
+                    if(cursorPosClipped.x<0) cursorPosClipped.x = 0;
+                    if(cursorPosClipped.y<0) cursorPosClipped.y = 0;
+                    if(cursorPosClipped.x>=canv->getDims().x) cursorPosClipped.x = canv->getDims().x;
+                    if(cursorPosClipped.y>=canv->getDims().y) cursorPosClipped.y = canv->getDims().y;
+                }
 
-                    if(selection.x2()>canv->getDims().x) {
-                        selection.r.w = canv->getDims().x-selection.r.x;
-                    }
-                    if(selection.y2()>canv->getDims().y) {
-                        selection.r.h = canv->getDims().y-selection.r.y;
-                    }
+                //Set two selection corner points
+                if(Input::mouseDownTime(1)==1) {
+                    selCorner1 = cursorPosClipped;
+                } else {
+                    selCorner2 = cursorPosClipped;
+                }
+
+                //Set selection rect from two corners
+                if(selCorner1.x>=0 || selCorner1.y>=0 || selCorner2.x>=0 || selCorner2.y>=0) {
+                    if(selCorner1.x<selCorner2.x) { selection.r.x = selCorner1.x; }
+                    else                          { selection.r.x = selCorner2.x; }
+                    if(selCorner1.y<selCorner2.y) { selection.r.y = selCorner1.y; }
+                    else                          { selection.r.y = selCorner2.y; }
+                    selection.r.w = std::abs(selCorner1.x-selCorner2.x);
+                    selection.r.h = std::abs(selCorner1.y-selCorner2.y);
+                }
+
+                //Reset selection corners if necessary
+                if(selCorner1==selCorner2) {
+                    //selCorner1 = {-1, -1};
+                    //selCorner2 = {-2, -2};
                 }
             } break;
             case PENCIL:      { canv->editDrawLine(lastCursorPos, cursorPos, toolColor); } break;
@@ -347,7 +379,6 @@ void Paint::setColorSquare(int idNo, nch::Color col)
     style << "background-color: " << col.toStringB16(true) << ";";
     elem->SetAttribute("style", style.str());
 }
-
 void Paint::selectTool(int toolType)
 {
     auto doc = webview.getWorkingDocument();
@@ -364,7 +395,6 @@ void Paint::selectTool(int toolType)
 
 
 }
-
 void Paint::selectColorPicker(bool selected)
 {
     colorPickerSelected = selected;
@@ -375,7 +405,6 @@ void Paint::selectColorPicker(bool selected)
         else         { eToolColorPicker->SetClassNames("toolbar-secondary tool-square"); }
     }
 }
-
 Color Paint::selectColorSquare(std::string id)
 {
     bool fail = true;

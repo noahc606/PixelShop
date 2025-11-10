@@ -16,9 +16,10 @@ table.rgb-picker {
         width: 96px;
         margin: 4px;
     }
-        td.rgb-comp-sdr div {
+        td.rgb-comp-sdr input {
             position: relative;
             top: 10%; height: 80%;
+            width: 100%;
             decorator: horizontal-gradient(rgb(0, 0, 0) rgb(255, 0, 0));
             cursor: pointer;
         }

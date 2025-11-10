@@ -22,6 +22,8 @@ public:
     void reload();
     void tick();
     void draw(SDL_Renderer* rend);
+    void events(SDL_Event& evt);
+    bool isSelectionValid();
 
 private:
     void tickingControls();    
@@ -39,6 +41,7 @@ private:
     nch::WebEventHolder webEvents;
 
     nch::Vec2i cursorPos = {0,0}, lastCursorPos = {-1,-1};
+    nch::Vec2i selCorner1 = {-1, -1}, selCorner2 = {-2, -2};
     nch::Rect selection = nch::Rect(0, 0, 0, 0);
 
     Canvas* canv = nullptr;
@@ -47,6 +50,7 @@ private:
     
 
     int holdingSave = 0;
+    bool requestedImageOpen = false;
 
     nch::Color toolColor;
     int toolType = PENCIL;

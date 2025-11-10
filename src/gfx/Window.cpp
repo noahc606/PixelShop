@@ -74,8 +74,10 @@ void Window::super_tick()
     if(age>maxAge) age = maxAge;
 
     //Tick only if not decaying
-    if(!decaying)
-        webview.tick(pos);
+    if(!decaying) {
+        webview.setScreenPos(pos);
+        webview.tick();
+    }
 }
 void Window::draw(){}
 void Window::super_draw()
@@ -105,8 +107,10 @@ void Window::super_draw()
 void Window::events(SDL_Event& evt){}
 
 void Window::close() {
-    decaying = true;
-    age = maxAge;
+    if(!decaying) {
+        decaying = true;
+        age = maxAge;
+    }
 }
 int Window::getType() {
     return type;
