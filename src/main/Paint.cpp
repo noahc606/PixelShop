@@ -214,7 +214,7 @@ void Paint::draw(SDL_Renderer* rend)
 }
 void Paint::events(SDL_Event& evt)
 {
-    if(evt.type==SDL_MOUSEBUTTONUP) {
+    if(evt.type==SDL_MOUSEBUTTONUP || evt.type==SDL_KEYUP) {
         //Image open...
         if(requestedImageOpen) {
             std::string openedPath = "";
@@ -325,8 +325,11 @@ void Paint::tickingControls()
     }
     bool justSaved = false;
     if(Input::isModKeyDown(KMOD_CTRL) && nch::Input::keyDownTime(SDLK_s)==1) {
-        Timer tim("saving image file to PNG", true);
-        canv->save();
+        requestedSave = true;
+        justSaved = true;
+    }
+    if(Input::isModKeyDown(KMOD_CTRL) && Input::isModKeyDown(KMOD_SHIFT) && nch::Input::keyDownTime(SDLK_s)==1) {
+        requestedSaveAs = true;
         justSaved = true;
     }
     if(!justSaved) {
