@@ -61,7 +61,7 @@ std::string GUIs::openFileDialog()
     if(selection==nullptr) {
         throw std::invalid_argument("User pressed \"X\" on the dialog window.");
     }
-    printf("Selected the file \"%s\".\n", selection);
+    Log::log("Selected the file \"%s\".", selection);
     return selection;
 }
 std::string GUIs::saveFileDialog()

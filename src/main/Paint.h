@@ -51,6 +51,8 @@ private:
 
     int holdingSave = 0;
     bool requestedImageOpen = false;
+    bool requestedSave = false;
+    bool requestedSaveAs = false;
 
     nch::Color toolColor;
     int toolType = PENCIL;

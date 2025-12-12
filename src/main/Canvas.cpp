@@ -134,25 +134,25 @@ Color Canvas::getPixel(const nch::Vec2i& pos)
     return TexUtils::getPixelColor(surf, pos.x, pos.y);
 }
 
+std::string Canvas::getFileDir() {
+    return fileDir;
+}
+
+void Canvas::saveAs(std::string savedFileDir, std::string savedFileName)
+{
+    fileDir = savedFileDir;
+    fileName = savedFileName;
+
+    IMG_SavePNG(surf, (fileDir+"/"+savedFileName).c_str());
+}
+
 void Canvas::saveAs(std::string savedFileName)
 {
-    //Open dialog to get location to save into
-    if(fileDir=="") {
-        std::string sfd = GUIs::saveFileDialog();
-        Log::log("Got saved file location: %s", sfd.c_str());
-
-        FilePath fp(sfd);
-        fileDir = fp.getParentDirPath();
-        fileName = fp.getObjectName(true);
-        savedFileName = fileName;
-    }
-
     if(!FsUtils::dirExists(fileDir)) {
         Log::warnv(__PRETTY_FUNCTION__, "canceling save operation", "Parent directory \"%s\" of save location doesn't seem to exist", fileDir.c_str());
         return;
     }
-
-    IMG_SavePNG(surf, (fileDir+"/"+savedFileName).c_str());
+    saveAs(fileDir, savedFileName);
 }
 void Canvas::save()
 {

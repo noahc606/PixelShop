@@ -2,6 +2,7 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_rect.h>
 #include <cmath>
+#include <nch/cpp-utils/filepath.h>
 #include <nch/cpp-utils/fs-utils.h>
 #include <nch/cpp-utils/log.h>
 #include <nch/cpp-utils/string-utils.h>
@@ -105,11 +106,10 @@ void Paint::tick()
             requestedImageOpen = true;
         }
         if(GUIs::tryPopPendingEvent("save")) {
-            canv->save();
-            GUIs::removeContextMenus();
+            requestedSave = true;
         }
         if(GUIs::tryPopPendingEvent("save_as")) {
-            //canv->promptSaveAs();
+            requestedSaveAs = true;
         }
 
         if(GUIs::tryPopPendingEvent("flatten_image")) {
@@ -214,15 +214,40 @@ void Paint::draw(SDL_Renderer* rend)
 }
 void Paint::events(SDL_Event& evt)
 {
-    if(evt.type==SDL_MOUSEBUTTONUP && requestedImageOpen) {
-        std::string openedPath = "";
-        try {
-            openedPath = GUIs::openFileDialog();
-        } catch(...) {}
-        delete canv;
-        canv = new Canvas(Main::getRenderer(), openedPath);
+    if(evt.type==SDL_MOUSEBUTTONUP) {
+        //Image open...
+        if(requestedImageOpen) {
+            std::string openedPath = "";
+            try {
+                openedPath = GUIs::openFileDialog();
+            } catch(...) {}
+            delete canv;
+            canv = new Canvas(Main::getRenderer(), openedPath);
 
-        requestedImageOpen = false;
+            requestedImageOpen = false;
+        }
+        //Save...
+        if(requestedSave) {
+            if(canv->getFileDir()=="") {
+                requestedSaveAs = true;
+            } else {
+                canv->save();
+            }
+            requestedSave = false;
+        }
+        //Save as...
+        if(requestedSaveAs) {
+            std::string openedPath = "";
+            try {
+                openedPath = GUIs::saveFileDialog();
+            } catch(...) {
+                Log::warnv(__PRETTY_FUNCTION__, "canceling save operation", "File selection failed");
+            }
+
+            FilePath fp(openedPath);
+            canv->saveAs(fp.getParentDirPath(), fp.getObjectName(true));
+            requestedSaveAs = false;
+        }        
     }
 }
 

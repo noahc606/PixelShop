@@ -9,7 +9,7 @@ std::vector<std::map<std::string, std::vector<std::string>>> ContextMenu::itemSe
         //{"new_image", {"New Image"}},
         {"open_image", {"Open Image..."}},
         {"save", {"Save", "Ctrl+S"}},
-        //{"save_as", {"Save As...", "Ctrl+Shift+S"}}
+        {"save_as", {"Save As...", "Ctrl+Shift+S"}}
     },
     {
         //{"edit_undo", {"Undo", "Ctrl+Z"}},
