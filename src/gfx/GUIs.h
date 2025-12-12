@@ -15,7 +15,8 @@ public:
     static void events(SDL_Event& evt);
 
     //Working with 'windows'
-    static std::string showFileDialog();
+    static std::string openFileDialog();
+    static std::string saveFileDialog();
     static void addColorPickerPopup(const nch::Color& originalColor);
     static void addGenericPopup(const std::string& webdocAssetPath);
     static void setContextMenu(const nch::Vec2i& spawnPos, int itemSet);

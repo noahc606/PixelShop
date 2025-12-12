@@ -25,7 +25,7 @@ Main::Main()
     Init::libSDL(basePath, window, renderer, pxFmt);
     Init::libRmlUi(renderer, basePath);
     GUIs::globalInit(renderer);
-        
+
     paint = new Paint(renderer);
     MainLoopDriver mld(renderer, &tick, 50, &draw, 120, events);
 }
@@ -86,6 +86,8 @@ void Main::draw(SDL_Renderer* rend)
     }
 
     GUIs::draw();
+
+    //MainLoopDriver::drawPerformanceBenchmark(rend, 100, getWidth(), getHeight());
 
 	//Render present objects on screen
 	SDL_RenderPresent(rend);

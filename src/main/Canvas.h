@@ -38,7 +38,7 @@ private:
 
     std::string fileDir = "";
     std::string fileName = "";
-    bool saveNeedsUniqueName = true;
+    bool saveNeedsUniqueName = false;
 
     nch::Rect workspace = nch::Rect(0, 0, 1, 1);
     nch::Vec2i grabbedMousePos = {-1, -1}, grabbedPos = {-1, -1};

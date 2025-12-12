@@ -217,7 +217,7 @@ void Paint::events(SDL_Event& evt)
     if(evt.type==SDL_MOUSEBUTTONUP && requestedImageOpen) {
         std::string openedPath = "";
         try {
-            openedPath = GUIs::showFileDialog();
+            openedPath = GUIs::openFileDialog();
         } catch(...) {}
         delete canv;
         canv = new Canvas(Main::getRenderer(), openedPath);

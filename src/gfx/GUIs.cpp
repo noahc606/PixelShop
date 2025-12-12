@@ -44,9 +44,9 @@ void GUIs::events(SDL_Event& evt)
     for(int i = 0; i<windows.size(); i++) { windows[i]->events(evt); }
 }
 
-std::string GUIs::showFileDialog()
+std::string GUIs::openFileDialog()
 {
-    char const* lFilterPatterns[] = { "*.png", "*.gif", "*.jpg" };
+    char const* lFilterPatterns[] = { "*.png", "*.jpg" };
 
     // there is also a wchar_t version
     char const* selection = tinyfd_openFileDialog(
@@ -63,6 +63,20 @@ std::string GUIs::showFileDialog()
     }
     printf("Selected the file \"%s\".\n", selection);
     return selection;
+}
+std::string GUIs::saveFileDialog()
+{
+    char const* lFilterPatterns[] = { "*.png" };
+
+    std::string ret = tinyfd_saveFileDialog(
+        "Select save location",
+        "",
+        1,
+        lFilterPatterns,
+        "PNG file"
+    );
+
+    return ret;
 }
 
 void GUIs::addColorPickerPopup(const Color& originalColor)

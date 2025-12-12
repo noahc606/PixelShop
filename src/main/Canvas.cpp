@@ -10,6 +10,7 @@
 #include <nch/sdl-utils/input.h>
 #include <nch/sdl-utils/rect.h>
 #include <nch/sdl-utils/texture-utils.h>
+#include "GUIs.h"
 #include "Main.h"
 using namespace nch;
 
@@ -135,6 +136,17 @@ Color Canvas::getPixel(const nch::Vec2i& pos)
 
 void Canvas::saveAs(std::string savedFileName)
 {
+    //Open dialog to get location to save into
+    if(fileDir=="") {
+        std::string sfd = GUIs::saveFileDialog();
+        Log::log("Got saved file location: %s", sfd.c_str());
+
+        FilePath fp(sfd);
+        fileDir = fp.getParentDirPath();
+        fileName = fp.getObjectName(true);
+        savedFileName = fileName;
+    }
+
     if(!FsUtils::dirExists(fileDir)) {
         Log::warnv(__PRETTY_FUNCTION__, "canceling save operation", "Parent directory \"%s\" of save location doesn't seem to exist", fileDir.c_str());
         return;
